@@ -42,7 +42,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/public ./public
 
 # Expose both app and SSH ports
-EXPOSE 3000 2222
+EXPOSE 8000 2222
 
 # Start both SSH and the app
 CMD ["/usr/local/bin/init.sh"]
