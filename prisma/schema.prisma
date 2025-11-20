@@ -30,4 +30,5 @@ model Course {
   // We're only adding "AND" prerequisites for now.
   // We will "discover" we need "OR" prerequisites later.
   prerequisites String[] 
+  prerequisitesOr String[]
 }
