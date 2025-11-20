@@ -1,9 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import authRoutes from './routes/authRoutes';
-import userRoutes from './routes/userRoutes';     // <--- NEW
-import courseRoutes from './routes/courseRoutes'; // <--- NEW
+import userRoutes from './routes/userRoutes';
+import courseRoutes from './routes/courseRoutes';
 
 dotenv.config();
 
@@ -13,10 +14,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from public directory 
+app.use(express.static(path.join(__dirname, '../public'))); 
+
 // Routes
 app.use('/auth', authRoutes);
-app.use('/api/user', userRoutes);      // <--- NEW
-app.use('/api/courses', courseRoutes); // <--- NEW
+app.use('/api/user', userRoutes);
+app.use('/api/courses', courseRoutes);
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
