@@ -37,21 +37,42 @@ export const getEligibleCourses = async (req: AuthRequest, res: Response) => {
     const allCourses = await prisma.course.findMany();
 
     // 3. Filter: Keep only the courses the user is eligible for
-    const eligibleCourses = allCourses.filter(course => {
+    const eligibleCourses = allCourses.filter((course: any) => {
       
       // Rule 1: If I've already taken it, I don't need to take it again.
       if (completedCourses.includes(course.code)) {
         return false; 
       }
 
-      // Rule 2: Check if I have all the prerequisites.
-      // v1 LOGIC: We only check the basic "AND" prerequisites list.
-      // This is the "mistake" - we are ignoring the OR requirements for now.
-      const hasPrerequisites = course.prerequisites.every(prereq =>
-        completedCourses.includes(prereq)
+      // Rule 2: Check if I have all the "AND" prerequisites.
+      // Every single course in the prerequisites array must be completed.
+      const allAndPrerequisitesMet = course.prerequisites.every((prerequisite: string) =>
+        completedCourses.includes(prerequisite)
       );
 
-      return hasPrerequisites;
+      if (!allAndPrerequisitesMet) {
+        return false; // Missing at least one AND prerequisite
+      }
+
+      // Rule 3: Check if I satisfy all "OR" prerequisite groups.
+      // For each OR group, I need to have completed at least ONE course from that group.
+      if (course.prerequisitesOr && course.prerequisitesOr.length > 0) {
+        const allOrGroupsMet = course.prerequisitesOr.every((orGroup: string) => {
+          // orGroup is a string like "CMPT 125|CMPT 128"
+          // Split it into individual course options
+          const options = orGroup.split('|');
+          
+          // Check if at least ONE of these options is in my completed courses
+          return options.some((option: string) => completedCourses.includes(option));
+        });
+
+        if (!allOrGroupsMet) {
+          return false; // Missing at least one OR group requirement
+        }
+      }
+
+      // If we get here, all requirements are met!
+      return true;
     });
 
     res.status(200).json(eligibleCourses);
