@@ -1,5 +1,5 @@
 // API Base URL
-const API_URL = window.location.origin;
+const API_URL = 'http://localhost:3000';
 
 // State
 let token = localStorage.getItem('token');
@@ -42,7 +42,7 @@ async function handleLogin(e) {
     const errorDiv = document.getElementById('loginError');
 
     try {
-        const response = await fetch(`${API_URL}/auth/login`, {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -69,7 +69,7 @@ async function handleRegister(e) {
     const errorDiv = document.getElementById('registerError');
 
     try {
-        const response = await fetch(`${API_URL}/auth/register`, {
+        const response = await fetch(`${API_URL}/api/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
