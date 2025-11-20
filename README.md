@@ -1,5 +1,7 @@
 # 🎓 SFU Course Prerequisite Tracker
 
+**🌐 Live Demo:** [https://sfu-course-tracker-zen.azurewebsites.net](https://sfu-course-tracker-zen.azurewebsites.net)
+
 A full-stack web application that helps Simon Fraser University (SFU) CS students track their completed courses and discover which courses they're eligible to take next based on prerequisite requirements.
 
 ## 🚀 Features
@@ -25,6 +27,38 @@ A full-stack web application that helps Simon Fraser University (SFU) CS student
 ### Frontend
 - **Vanilla JavaScript** - No framework dependencies
 - **HTML5 & CSS3** - Responsive design with modern styling
+
+## ☁️ Deployment
+
+This application is deployed on **Microsoft Azure** using:
+- **Azure App Service** - Hosts the containerized application
+- **Azure Container Registry** - Stores Docker images
+- **Azure Database for PostgreSQL** - Managed database service
+- **GitHub Actions** - CI/CD pipeline for automated deployments
+
+### Local Development with Docker
+
+Run the application locally using Docker Compose:
+
+```bash
+docker-compose up
+```
+
+This will start:
+- The Node.js API server on port 8000
+- A PostgreSQL database with persistent storage
+
+To stop the containers:
+
+```bash
+docker-compose down
+```
+
+To remove volumes (reset database):
+
+```bash
+docker-compose down -v
+```
 
 ## 📋 Prerequisites
 
