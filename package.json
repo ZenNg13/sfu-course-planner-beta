@@ -3,9 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc && npx tsc prisma/seed.ts --outDir dist/prisma --target ES2020 --module commonjs --esModuleInterop --resolveJsonModule --skipLibCheck",
+    "start": "node dist/server.js",
     "seed": "ts-node prisma/seed.ts",
+    "seed:prod": "node dist/prisma/seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
