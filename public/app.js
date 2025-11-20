@@ -157,6 +157,10 @@ async function saveCompletedCourses() {
         if (response.ok) {
             currentUser = await response.json();
             completedCourses = currentUser.completedCourses;
+            // Re-render both sections to update the green highlighting
+            renderCourses();          
+            renderCompletedCourses();
+            
             document.getElementById('saveMessage').textContent = '✓ Saved successfully!';
             setTimeout(() => {
                 document.getElementById('saveMessage').textContent = '';
