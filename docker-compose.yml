@@ -1,27 +1,63 @@
 version: '3.8'
 
 services:
-  # 1. Your Application
-  api:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      # This connects to the 'db' service below
-      - DATABASE_URL=postgresql://postgres:password@db:5432/sfu_tracker_docker?schema=public
-      - JWT_SECRET=super_secret_docker_key
-    depends_on:
-      - db
-
-  # 2. A Fresh Database (Just for Docker)
-  db:
+  # PostgreSQL Database
+  postgres:
     image: postgres:15-alpine
+    container_name: sfu_scheduler_db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=sfu_tracker_docker
+      POSTGRES_USER: sfu_user
+      POSTGRES_PASSWORD: sfu_password
+      POSTGRES_DB: sfu_scheduler
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sfu_user -d sfu_scheduler"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sfu_network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sfu_scheduler_backend
+    environment:
+      DATABASE_URL: postgresql://sfu_user:sfu_password@postgres:5432/sfu_scheduler
+      DEBUG: "false"
+      ALLOWED_ORIGINS: '["http://localhost:3000", "http://localhost:5173"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    networks:
+      - sfu_network
+
+  # Frontend (optional - if you want to run it in Docker too)
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: sfu_scheduler_frontend
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - sfu_network
 
 volumes:
   postgres_data:
+
+networks:
+  sfu_network:
+    driver: bridge
