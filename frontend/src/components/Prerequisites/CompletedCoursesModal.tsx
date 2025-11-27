@@ -22,13 +22,58 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
   const [newCourse, setNewCourse] = useState('');
   const [eligibleCourses, setEligibleCourses] = useState<EligibleCourse[]>([]);
   const [loadingEligible, setLoadingEligible] = useState(false);
+  const [allCourses, setAllCourses] = useState<{course_id: string, title: string}[]>([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setCourses([...completedCourses]);
+    
+    // Fetch all courses for search when modal opens
+    if (isOpen && allCourses.length === 0) {
+      fetchAllCourses();
+    }
+    
     if (isOpen && activeTab === 'eligible') {
       loadEligibleCourses();
     }
-  }, [completedCourses, isOpen, activeTab]);
+  }, [completedCourses, isOpen, activeTab, allCourses.length]);
+
+  const fetchAllCourses = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/v1/courses/all');
+      
+      if (response.ok) {
+        const rawCourses = await response.json();
+        
+        // Deduplicate by course_id (since API returns all sections)
+        const uniqueCourses = new Map<string, any>();
+        
+        rawCourses.forEach((course: any) => {
+          const info = course.info || {};
+          const dept = info.dept || '';
+          const number = info.number || '';
+          const title = info.title || '';
+          const courseId = dept && number ? `${dept}-${number}` : '';
+          
+          if (courseId && !uniqueCourses.has(courseId)) {
+            uniqueCourses.set(courseId, {
+              course_id: courseId,
+              title: title,
+              dept: dept,
+              number: number
+            });
+          }
+        });
+        
+        const courseList = Array.from(uniqueCourses.values());
+        console.log('Fetched unique courses:', courseList.length);
+        setAllCourses(courseList);
+      }
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    }
+  };
 
   const loadEligibleCourses = async () => {
     setLoadingEligible(true);
@@ -39,7 +84,7 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/validate/suggest-next', {
+      const response = await fetch('http://localhost:8000/api/v1/validate/suggest-next?limit=50', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,7 +145,36 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
         setCourses([...courses, formatted]);
       }
       setNewCourse('');
+      setShowSearchDropdown(false);
     }
+  };
+
+  // Filter courses based on search input
+  const searchResults = newCourse.trim().length >= 2
+    ? allCourses.filter(course => {
+        const query = newCourse.toLowerCase().replace(/[-\s]/g, '');
+        const courseId = course.course_id.toLowerCase().replace(/[-\s]/g, '');
+        const title = course.title.toLowerCase();
+        return !courses.includes(course.course_id) && 
+               (courseId.includes(query) || title.includes(query));
+      }).slice(0, 10)
+    : [];
+
+  // Debug: log when search results change
+  useEffect(() => {
+    if (newCourse.length >= 2) {
+      console.log('Search query:', newCourse);
+      console.log('All courses count:', allCourses.length);
+      console.log('Search results:', searchResults.length);
+    }
+  }, [newCourse, searchResults.length, allCourses.length]);
+
+  const handleSelectCourse = (courseId: string) => {
+    if (!courses.includes(courseId)) {
+      setCourses([...courses, courseId]);
+    }
+    setNewCourse('');
+    setShowSearchDropdown(false);
   };
 
   const handleRemove = (course: string) => {
@@ -109,12 +183,13 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
 
   const handleSave = async () => {
     setCompletedCourses(courses);
+    setSaveMessage(null);
     
     // Save to backend
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        await fetch('http://localhost:8000/api/v1/user/courses', {
+        const response = await fetch('http://localhost:8000/api/v1/user/courses', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -122,17 +197,58 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
           },
           body: JSON.stringify(courses)
         });
+        
+        if (response.ok) {
+          setSaveMessage('✓ Saved successfully!');
+          // Clear message after 3 seconds
+          setTimeout(() => setSaveMessage(null), 3000);
+        } else {
+          const errorText = await response.text();
+          console.error('Save failed:', response.status, errorText);
+          setSaveMessage(`✗ Failed to save (${response.status})`);
+        }
       } catch (error) {
         console.error('Failed to save completed courses:', error);
+        setSaveMessage('✗ Failed to save');
       }
+    } else {
+      setSaveMessage('✗ Not logged in');
     }
     
-    onClose();
+    // Don't close modal - stay on the page
+    // onClose();
   };
 
-  const handleAddFromEligible = (courseKey: string) => {
-    // This would add the course to the schedule
-    alert(`Adding ${courseKey} to your schedule...`);
+  const getCourseStatus = (course: EligibleCourse): 'ready' | 'missing' | 'no-prereq' => {
+    const prereqString = course.prerequisites;
+    
+    // No prerequisites - ready to take
+    if (!prereqString || prereqString.trim() === '') {
+      return 'no-prereq';
+    }
+
+    try {
+      const tree = PrerequisiteParser.parse(prereqString);
+      if (!tree) return 'ready';
+
+      // Check if all prerequisites are met
+      const checkNodeSatisfied = (node: any): boolean => {
+        if (node.type === 'course') {
+          return courses.includes(node.value);
+        }
+        if (node.type === 'and' && node.children) {
+          return node.children.every((child: any) => checkNodeSatisfied(child));
+        }
+        if (node.type === 'or' && node.children) {
+          return node.children.some((child: any) => checkNodeSatisfied(child));
+        }
+        return false;
+      };
+
+      return checkNodeSatisfied(tree) ? 'ready' : 'missing';
+    } catch {
+      return 'ready';
+    }
   };
 
   const renderPrerequisites = (course: EligibleCourse) => {
@@ -158,6 +274,20 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
         </div>
       );
     }
+
+    // Helper to check if all prerequisites in a node are met
+    const checkNodeSatisfied = (node: any): boolean => {
+      if (node.type === 'course') {
+        return courses.includes(node.value);
+      }
+      if (node.type === 'and' && node.children) {
+        return node.children.every((child: any) => checkNodeSatisfied(child));
+      }
+      if (node.type === 'or' && node.children) {
+        return node.children.some((child: any) => checkNodeSatisfied(child));
+      }
+      return false;
+    };
 
     // Helper to render a prerequisite node
     const renderNode = (node: any, depth: number = 0): JSX.Element => {
@@ -287,22 +417,51 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
               </p>
 
               {/* Add Course Input */}
-              <div className="flex space-x-2 mb-6">
-                <input
-                  type="text"
-                  value={newCourse}
-                  onChange={(e) => setNewCourse(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
-                  placeholder="e.g., CMPT 120 or CMPT-120"
-                  className="flex-1 px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-sfu-red"
-                />
-                <button
-                  onClick={handleAdd}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  <Plus size={18} />
-                  <span>Add</span>
-                </button>
+              <div className="relative mb-6">
+                <div className="flex space-x-2">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={newCourse}
+                      onChange={(e) => {
+                        setNewCourse(e.target.value);
+                        setShowSearchDropdown(e.target.value.trim().length >= 2);
+                      }}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+                      onFocus={() => newCourse.trim().length >= 2 && setShowSearchDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowSearchDropdown(false), 200)}
+                      placeholder="Search course (e.g., CMPT 120)"
+                      className="w-full px-4 py-2 bg-dark-bg border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-sfu-red"
+                    />
+                    
+                    {/* Search Dropdown */}
+                    {showSearchDropdown && searchResults.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-dark-card border border-gray-600 rounded-lg shadow-xl z-[60] max-h-60 overflow-y-auto">
+                        {searchResults.map((course) => (
+                          <button
+                            key={course.course_id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectCourse(course.course_id);
+                            }}
+                            className="w-full px-4 py-3 text-left hover:bg-dark-bg transition-colors border-b border-gray-700 last:border-b-0"
+                          >
+                            <div className="font-medium text-white">{course.course_id}</div>
+                            <div className="text-sm text-gray-400 truncate">{course.title}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={handleAdd}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <Plus size={18} />
+                    <span>Add</span>
+                  </button>
+                </div>
               </div>
 
               {/* Course List */}
@@ -347,31 +506,44 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
                 </div>
               ) : (
                 <div className="grid grid-cols-1 gap-4">
-                  {eligibleCourses.map((course) => (
-                    <div
-                      key={course.courseKey}
-                      className="p-4 bg-dark-bg rounded-lg border border-gray-700 hover:border-blue-500 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h3 className="text-white font-bold text-lg">
-                            {course.courseKey}
-                          </h3>
-                          <p className="text-gray-300 text-sm mt-1">
-                            {course.title}
-                          </p>
+                  {eligibleCourses.map((course) => {
+                    const status = getCourseStatus(course);
+                    return (
+                      <div
+                        key={course.courseKey}
+                        className="p-4 bg-dark-bg rounded-lg border border-gray-700 hover:border-blue-500 transition-colors"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <h3 className="text-white font-bold text-lg">
+                              {course.courseKey}
+                            </h3>
+                            <p className="text-gray-300 text-sm mt-1">
+                              {course.title}
+                            </p>
+                          </div>
+                          <div className="ml-3">
+                            {status === 'no-prereq' && (
+                              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-900 text-blue-300 border border-blue-700">
+                                No Prerequisites
+                              </span>
+                            )}
+                            {status === 'ready' && (
+                              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-900 text-green-300 border border-green-700">
+                                ✓ Ready to Take
+                              </span>
+                            )}
+                            {status === 'missing' && (
+                              <span className="px-3 py-1 text-xs font-semibold rounded-full bg-orange-900 text-orange-300 border border-orange-700">
+                                Missing Prerequisites
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <button
-                          onClick={() => handleAddFromEligible(course.courseKey)}
-                          className="ml-3 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors flex items-center space-x-1"
-                        >
-                          <Plus size={14} />
-                          <span>Add</span>
-                        </button>
+                        {renderPrerequisites(course)}
                       </div>
-                      {renderPrerequisites(course)}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -380,6 +552,13 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
 
         {/* Footer */}
         <div className="flex justify-end space-x-3 p-6 border-t border-gray-700">
+          {saveMessage && (
+            <div className={`mr-auto px-4 py-2 rounded-lg ${
+              saveMessage.includes('✓') ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+            }`}>
+              {saveMessage}
+            </div>
+          )}
           <button
             onClick={onClose}
             className="px-6 py-2 border border-gray-600 rounded-lg hover:bg-dark-bg transition-colors text-white"

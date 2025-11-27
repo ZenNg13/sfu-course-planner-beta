@@ -3,18 +3,21 @@ import { CourseCard } from './CourseCard';
 import { UnscheduledCourse } from './UnscheduledCourse';
 import { useCourseStore } from '../../stores/courseStore';
 import { Search } from 'lucide-react';
-import { CourseGroup } from '../../types';
 
 export const CourseList: React.FC = () => {
+  // Subscribe to courseGroups to trigger re-render when courses are added/removed
   const courseGroups = useCourseStore((state) => state.courseGroups);
   const getScheduledCourses = useCourseStore((state) => state.getScheduledCourses);
   const getUnscheduledGroups = useCourseStore((state) => state.getUnscheduledGroups);
   const unscheduleSection = useCourseStore((state) => state.unscheduleSection);
-  const [draggingGroup, setDraggingGroup] = useState<CourseGroup | null>(null);
   const [isDragOverUnscheduled, setIsDragOverUnscheduled] = useState(false);
 
+  // Force re-render when courseGroups changes
   const scheduledCourses = getScheduledCourses();
   const unscheduledGroups = getUnscheduledGroups();
+  
+  // Prevent unused variable warning
+  void courseGroups;
 
   const handleDragOverUnscheduled = (e: React.DragEvent) => {
     e.preventDefault();
@@ -68,7 +71,7 @@ export const CourseList: React.FC = () => {
               <UnscheduledCourse
                 key={group.courseKey}
                 group={group}
-                onDragStart={setDraggingGroup}
+                onDragStart={() => {}}
               />
             ))
           )}

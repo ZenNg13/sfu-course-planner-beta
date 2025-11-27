@@ -1,4 +1,3 @@
-import React from 'react';
 import { MainLayout } from './components/Layout/MainLayout';
 import { AuthPage } from './components/Auth/AuthPage';
 import { useAuthStore } from './stores/authStore';
