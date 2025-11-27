@@ -1,14 +1,22 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../utils/prisma';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // GET /api/courses
-// Public: Get a list of all available courses
+// Public: Get a list of all available courses from JSON file
 export const getAllCourses = async (req: Request, res: Response) => {
   try {
-    const courses = await prisma.course.findMany({
-      orderBy: { code: 'asc' }
-    });
+    // Read the JSON file with 251 courses
+    // Path: frontend/src/controllers -> ../../../backend/data
+    const jsonPath = path.join(__dirname, '../../../backend/data/fall_2025_courses_with_enrollment.json');
+    const rawData = readFileSync(jsonPath, 'utf-8');
+    const courses = JSON.parse(rawData);
 
     res.status(200).json(courses);
   } catch (error) {

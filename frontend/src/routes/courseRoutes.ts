@@ -5,6 +5,7 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 // Public route: Anyone can see the course catalog
+router.get('/all', getAllCourses);  // Changed from '/' to '/all'
 router.get('/', getAllCourses);
 
 // Protected route: Only logged-in users can see their eligibility

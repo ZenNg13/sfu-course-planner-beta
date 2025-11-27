@@ -3,11 +3,12 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../frontend/node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Reads the secret URL from your .env file
+  url      = env("DATABASE_URL")
 }
 
 // User model for authentication and tracking
