@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CourseSection, CourseGroup } from '../types';
+import { PrerequisiteParser } from '../utils/prerequisiteParser';
 
 // Helper to check for time conflicts
 const hasTimeConflict = (section1: CourseSection, section2: CourseSection): boolean => {
@@ -65,7 +66,8 @@ interface CourseStore {
   getTotalCredits: () => number;
   getScheduledCourses: () => CourseSection[];
   getUnscheduledGroups: () => CourseGroup[];
-  checkPrerequisites: (courseKey: string) => Promise<{valid: boolean; missing: string[]}>;
+  checkPrerequisites: (courseKey: string, prereqString?: string) => Promise<{valid: boolean; missing: string[]}>;
+  parsePrerequisites: (prereqString: string) => { andGroups: string[][], orGroups: string[][] };
 }
 
 export const useCourseStore = create<CourseStore>()(
@@ -219,41 +221,62 @@ export const useCourseStore = create<CourseStore>()(
     return courseGroups.filter((g) => !g.isScheduled);
   },
   
-  checkPrerequisites: async (courseKey: string): Promise<{valid: boolean; missing: string[]}> => {
+  checkPrerequisites: async (courseKey: string, prereqString?: string): Promise<{valid: boolean; missing: string[]}> => {
     const { completedCourses } = get();
     const token = localStorage.getItem('token');
     
-    if (!token) {
-      // If not logged in, allow all courses
+    // If no prerequisites provided and no token, allow the course
+    if (!prereqString && !token) {
       return { valid: true, missing: [] };
     }
     
-    try {
-      const response = await fetch('http://localhost:8000/api/v1/validate/prereqs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          target_course: courseKey,
-          transcript: completedCourses
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
+    // Try client-side parsing first if prereqString is provided
+    if (prereqString) {
+      try {
+        const tree = PrerequisiteParser.parse(prereqString);
+        const result = PrerequisiteParser.checkPrerequisites(tree, completedCourses);
         return {
-          valid: data.is_valid,
-          missing: data.missing_courses || []
+          valid: result.satisfied,
+          missing: result.missing
         };
+      } catch (error) {
+        console.error('Client-side prerequisite parsing failed:', error);
       }
-    } catch (error) {
-      console.error('Failed to check prerequisites:', error);
+    }
+    
+    // Fallback to backend API
+    if (token) {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/validate/prereqs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            target_course: courseKey,
+            transcript: completedCourses
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            valid: data.is_valid,
+            missing: data.missing_courses || []
+          };
+        }
+      } catch (error) {
+        console.error('Backend prerequisite check failed:', error);
+      }
     }
     
     // On error, allow the course (fail open)
     return { valid: true, missing: [] };
+  },
+  
+  parsePrerequisites: (prereqString: string) => {
+    return PrerequisiteParser.getStructuredPrereqs(prereqString);
   },
 }),
     {

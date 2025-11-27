@@ -101,10 +101,15 @@ class SFUAPIClient:
         term_code = term_map.get(term.lower(), term[:2])
         year_short = year
         
-        # Convert section format: "D100" -> "d1"
+        # Convert section format: "D100" -> "d1", "D101" -> "d1", "D200" -> "d2"
+        # Take first letter + first digit only
         section_code = section.lower()
-        if len(section_code) > 2:
-            section_code = section_code[:2]
+        if len(section_code) >= 2:
+            # Extract first letter and first digit (e.g., "d100" -> "d1", "d101" -> "d1")
+            import re
+            match = re.match(r'^([a-z])(\d)', section_code)
+            if match:
+                section_code = match.group(1) + match.group(2)
         
         # Build CourSys URL
         coursys_id = f"{year_short}{term_code}-{dept.lower()}-{course_number.lower()}-{section_code}"

@@ -285,7 +285,8 @@ class PrerequisiteValidator:
                         "title": course.title,
                         "dept": course.dept,
                         "number": course.number,
-                        "credits": course.credits
+                        "credits": course.credits,
+                        "prerequisites": course.prerequisites_raw or ""
                     })
             else:
                 # No prerequisites - always available
@@ -293,6 +294,7 @@ class PrerequisiteValidator:
                     "course_id": course.id,
                     "title": course.title,
                     "dept": course.dept,
+                    "prerequisites": course.prerequisites_raw or "",
                     "number": course.number,
                     "credits": course.credits
                 })

@@ -25,7 +25,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const termCode = "2025fa";
   
   // Convert section format: "D100" -> "d1", "D101" -> "d1", "D200" -> "d2"
-  const sectionCode = course.section.toLowerCase().replace(/(\d)0+$/, '$1');
+  // Take first letter + first digit only (D100 -> d1, D101 -> d1, D200 -> d2)
+  const sectionCode = course.section.toLowerCase().replace(/^([a-z])(\d)\d+$/, '$1$2');
 
   // Find the course group this belongs to
   const courseGroup = courseGroups.find(g => 
