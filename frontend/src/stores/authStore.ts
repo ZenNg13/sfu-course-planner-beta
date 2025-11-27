@@ -2,6 +2,26 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useCourseStore } from './courseStore';
 
+// Helper to load completed courses
+const loadCompletedCourses = async (token: string) => {
+  try {
+    const response = await fetch('http://localhost:8000/api/v1/user/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.completedCourses) {
+        useCourseStore.getState().setCompletedCourses(data.completedCourses);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load completed courses:', error);
+  }
+};
+
 interface AuthState {
   token: string | null;
   email: string | null;
@@ -23,6 +43,8 @@ export const useAuthStore = create<AuthState>()(
         localStorage.setItem('token', token);
         // Set userId in courseStore to load user-specific courses
         useCourseStore.getState().setUserId(userId.toString());
+        // Load completed courses from backend
+        loadCompletedCourses(token);
       },
       logout: () => {
         set({ token: null, email: null, userId: null, isAuthenticated: false });

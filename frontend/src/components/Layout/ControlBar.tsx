@@ -138,14 +138,20 @@ export const ControlBar: React.FC = () => {
     setShowSuggestions(false);
   };
 
-  const handleAddCourse = () => {
+  const handleAddCourse = async () => {
     if (selectedCourse) {
       // Add as unscheduled
-      addCourseGroup({
+      const result = await addCourseGroup({
         ...selectedCourse,
         isScheduled: false,
         scheduledSectionId: undefined
       });
+      
+      if (!result.success) {
+        alert(result.error || 'Failed to add course');
+        return;
+      }
+      
       setSelectedCourse(null);
       setSearchQuery('');
     }
