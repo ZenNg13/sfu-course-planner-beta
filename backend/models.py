@@ -90,6 +90,31 @@ class Watcher(SQLModel, table=True):
         return f"<Watcher {self.user_email} for Section {self.section_id}>"
 
 
+class User(SQLModel, table=True):
+    """User table - For authentication and tracking completed courses."""
+    
+    __tablename__ = "users"
+    
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(unique=True, index=True, description="User email")
+    password: str = Field(description="Hashed password")
+    completed_courses: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON),
+        description="List of completed course codes"
+    )
+    scheduled_courses: Optional[dict[str, Any]] = Field(
+        default=None,
+        sa_column=Column(JSON),
+        description="Saved course schedule with all selections"
+    )
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    def __repr__(self) -> str:
+        return f"<User {self.id}: {self.email}>"
+
+
 # Pydantic models for API requests/responses
 
 class CourseRead(SQLModel):

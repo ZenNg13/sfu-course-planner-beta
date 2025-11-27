@@ -17,7 +17,7 @@ export const AuthPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const endpoint = isLogin ? '/api/v1/auth/login' : '/api/v1/auth/register';
       const response = await fetch(`http://localhost:8000${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -28,15 +28,13 @@ export const AuthPage: React.FC = () => {
 
       if (response.ok) {
         if (isLogin) {
-          login(data.token, email);
+          login(data.token, email, data.user_id);
         } else {
-          setError('');
-          alert('Registration successful! Please login.');
-          setIsLogin(true);
-          setPassword('');
+          // Auto-login after successful registration
+          login(data.token, email, data.user_id);
         }
       } else {
-        setError(data.error || 'Authentication failed');
+        setError(data.detail || 'Authentication failed');
       }
     } catch (err) {
       setError('Network error. Please try again.');
