@@ -89,3 +89,92 @@ export const getEligibleCourses = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// GET /api/courses/enrollment/:dept/:number/:section
+// Public: Get live enrollment data for a specific course section
+export const getLiveEnrollment = async (req: Request, res: Response) => {
+  try {
+    const { dept, number, section } = req.params;
+    const { term = '2025/fall' } = req.query;
+
+    // For now, return data from the JSON file
+    // In production, this would fetch from SFU's live API
+    const jsonPath = path.join(__dirname, '../../../backend/data/fall_2025_courses_with_enrollment.json');
+    const rawData = readFileSync(jsonPath, 'utf-8');
+    const courses = JSON.parse(rawData);
+
+    // Find the specific course section
+    const courseSection = courses.find((c: any) => 
+      c.info?.dept === dept && 
+      c.info?.number === number && 
+      c.info?.section === section
+    );
+
+    if (courseSection && courseSection.enrollmentData) {
+      res.status(200).json({
+        dept,
+        number,
+        section,
+        enrolled: courseSection.enrollmentData.enrolled || 'N/A',
+        waitlist: courseSection.enrollmentData.waitlist || '0',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(404).json({ error: 'Course section not found' });
+    }
+  } catch (error) {
+    console.error('Get live enrollment error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// POST /api/courses/enrollment/batch
+// Public: Get live enrollment data for multiple course sections
+export const getBatchEnrollment = async (req: Request, res: Response) => {
+  try {
+    const { courses: coursesToFetch, term = '2025/fall' } = req.body;
+
+    if (!Array.isArray(coursesToFetch)) {
+      return res.status(400).json({ error: 'Invalid request: courses must be an array' });
+    }
+
+    const jsonPath = path.join(__dirname, '../../../backend/data/fall_2025_courses_with_enrollment.json');
+    const rawData = readFileSync(jsonPath, 'utf-8');
+    const allCourses = JSON.parse(rawData);
+
+    const results = coursesToFetch.map((course: any) => {
+      const { dept, number, section } = course;
+      
+      const courseSection = allCourses.find((c: any) => 
+        c.info?.dept === dept && 
+        c.info?.number === number && 
+        c.info?.section === section
+      );
+
+      if (courseSection && courseSection.enrollmentData) {
+        return {
+          dept,
+          number,
+          section,
+          enrolled: courseSection.enrollmentData.enrolled || 'N/A',
+          waitlist: courseSection.enrollmentData.waitlist || '0',
+          timestamp: new Date().toISOString()
+        };
+      } else {
+        return {
+          dept,
+          number,
+          section,
+          enrolled: 'N/A',
+          waitlist: '0',
+          timestamp: new Date().toISOString()
+        };
+      }
+    });
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error('Get batch enrollment error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
