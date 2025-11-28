@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CourseSection, CourseGroup } from '../types';
 import { PrerequisiteParser } from '../utils/prerequisiteParser';
+import { generateCourseColor } from '../utils/colorGenerator';
 
 // Helper to check for time conflicts
 const hasTimeConflict = (section1: CourseSection, section2: CourseSection): boolean => {
@@ -109,7 +110,19 @@ export const useCourseStore = create<CourseStore>()(
       if (response.ok) {
         const data = await response.json();
         if (data.scheduledCourses?.courseGroups) {
-          set({ courseGroups: data.scheduledCourses.courseGroups });
+          // Ensure all sections have colors assigned
+          const courseGroupsWithColors = data.scheduledCourses.courseGroups.map((group: CourseGroup) => ({
+            ...group,
+            sections: group.sections.map(section => ({
+              ...section,
+              color: section.color || generateCourseColor(group.courseKey)
+            })),
+            combinedSection: group.combinedSection ? {
+              ...group.combinedSection,
+              color: group.combinedSection.color || generateCourseColor(group.courseKey)
+            } : undefined
+          }));
+          set({ courseGroups: courseGroupsWithColors });
         }
       }
     } catch (error) {
@@ -118,15 +131,6 @@ export const useCourseStore = create<CourseStore>()(
   },
   
   addCourseGroup: async (group: CourseGroup): Promise<{success: boolean; error?: string}> => {
-    // Check prerequisites first
-    const prereqCheck = await get().checkPrerequisites(group.courseKey);
-    if (!prereqCheck.valid) {
-      return {
-        success: false,
-        error: `Missing prerequisites: ${prereqCheck.missing.join(', ')}`
-      };
-    }
-    
     // Check if course already exists
     const exists = get().courseGroups.some(g => g.courseKey === group.courseKey);
     if (exists) {

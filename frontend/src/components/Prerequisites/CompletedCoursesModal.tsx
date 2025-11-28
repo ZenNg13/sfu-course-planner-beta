@@ -243,8 +243,22 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
   const renderPrerequisiteLogic = (logic: any) => {
     if (!logic) return null;
     
+    // Helper to check if a node has real course prerequisites (not just UNKNOWN)
+    const hasRealPrereqs = (node: any): boolean => {
+      if (!node || !node.type) return false;
+      if (node.type === 'COURSE') return true;
+      if (node.type === 'UNKNOWN') return false;
+      if ((node.type === 'AND' || node.type === 'OR') && node.children) {
+        return node.children.some((child: any) => hasRealPrereqs(child));
+      }
+      return false;
+    };
+    
     const renderLogicNode = (node: any, depth: number = 0): JSX.Element | null => {
       if (!node || !node.type) return null;
+      
+      // Skip UNKNOWN nodes
+      if (node.type === 'UNKNOWN') return null;
       
       if (node.type === 'COURSE') {
         const courseId = node.course;
@@ -263,9 +277,13 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
       }
       
       if (node.type === 'AND' && node.children) {
+        // Filter out children with no real prerequisites
+        const validChildren = node.children.filter((child: any) => hasRealPrereqs(child));
+        if (validChildren.length === 0) return null;
+        
         return (
           <div className="flex flex-wrap gap-1.5 items-center">
-            {node.children.map((child: any, idx: number) => (
+            {validChildren.map((child: any, idx: number) => (
               <React.Fragment key={idx}>
                 {idx > 0 && <span className="text-purple-400 text-xs font-semibold">AND</span>}
                 {child.type === 'OR' ? (
@@ -284,9 +302,13 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
       }
       
       if (node.type === 'OR' && node.children) {
+        // Filter out children with no real prerequisites
+        const validChildren = node.children.filter((child: any) => hasRealPrereqs(child));
+        if (validChildren.length === 0) return null;
+        
         return (
           <div className="inline-flex flex-wrap gap-1.5 items-center">
-            {node.children.map((child: any, idx: number) => (
+            {validChildren.map((child: any, idx: number) => (
               <React.Fragment key={idx}>
                 {idx > 0 && <span className="text-purple-400 text-xs font-semibold">OR</span>}
                 {renderLogicNode(child, depth + 1)}
@@ -303,7 +325,7 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
       <div className="mt-3">
         <p className="text-xs text-gray-500 mb-2">PREREQUISITES:</p>
         <div className="bg-gray-800 p-2 rounded">
-          {renderLogicNode(logic)}
+          {hasRealPrereqs(logic) ? renderLogicNode(logic) : <span className="text-xs text-gray-400 italic">None</span>}
         </div>
       </div>
     );

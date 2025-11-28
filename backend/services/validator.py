@@ -284,14 +284,20 @@ class PrerequisiteValidator:
                     transcript_set
                 )
                 
-                # Check if at least one prerequisite is met
+                # Check if at least one prerequisite is met (but only for real prerequisites)
                 has_any_prereq = self._has_any_prerequisite(
                     course.prerequisites_logic,
                     transcript_set
                 )
                 
-                # Include if fully eligible OR if at least one prereq is met
-                if is_valid or has_any_prereq:
+                # Check if the prerequisite is just an UNKNOWN type (like recommendations)
+                has_real_prereqs = self._has_real_prerequisites(course.prerequisites_logic)
+                
+                # Include if:
+                # 1. Fully eligible, OR
+                # 2. At least one prereq is met (and has real prerequisites), OR
+                # 3. Has no real prerequisites (only UNKNOWN/recommendations)
+                if is_valid or has_any_prereq or not has_real_prereqs:
                     suggestions.append({
                         "course_id": course.id,
                         "title": course.title,
@@ -300,8 +306,8 @@ class PrerequisiteValidator:
                         "credits": course.credits,
                         "prerequisites": course.prerequisites_raw or "",
                         "prerequisites_logic": course.prerequisites_logic,
-                        "is_eligible": is_valid,
-                        "missing_prerequisites": missing if not is_valid else []
+                        "is_eligible": is_valid or not has_real_prereqs,
+                        "missing_prerequisites": missing if not (is_valid or not has_real_prereqs) else []
                     })
             else:
                 # No prerequisites - always available
@@ -348,6 +354,32 @@ class PrerequisiteValidator:
             return False
         
         else:
+            return False
+    
+    def _has_real_prerequisites(self, tree: dict[str, Any]) -> bool:
+        """
+        Check if the tree contains real prerequisite courses (not just UNKNOWN/recommendations).
+        
+        Args:
+            tree: Prerequisite logic tree
+            
+        Returns:
+            True if tree contains at least one COURSE node, False if only UNKNOWN
+        """
+        node_type = tree.get("type")
+        
+        if node_type == "COURSE":
+            return True
+        
+        elif node_type in ["AND", "OR"]:
+            # Check if any child has real prerequisites
+            for child in tree.get("children", []):
+                if self._has_real_prerequisites(child):
+                    return True
+            return False
+        
+        else:
+            # UNKNOWN or other types = not a real prerequisite
             return False
     
     def _normalize_course_id(self, course_id: str) -> str:

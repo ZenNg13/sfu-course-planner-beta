@@ -3,6 +3,7 @@ import { Filter, Search, Plus } from 'lucide-react';
 import { useCourseStore } from '../../stores/courseStore';
 import { CourseGroup } from '../../types';
 import { api } from '../../services/api';
+import { generateCourseColor } from '../../utils/colorGenerator';
 
 // Static department list for now
 const departments = [
@@ -90,7 +91,7 @@ export const ControlBar: React.FC = () => {
               avgGrade: 'N/A',
               textbookISBN: 'None'
             },
-            color: '#A6192E' // SFU red
+            color: generateCourseColor(courseKey) // Generate unique color per course
           };
           
           if (!courseMap.has(courseKey)) {
