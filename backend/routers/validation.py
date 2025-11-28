@@ -2,7 +2,7 @@
 Prerequisite Validation API routes.
 """
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlmodel import Session
 
 from database import get_session
@@ -94,8 +94,7 @@ async def get_courses_unlocked(
 
 @router.post("/suggest-next", response_model=list[dict[str, Any]])
 async def suggest_next_courses(
-    transcript: list[str],
-    limit: int = 10,
+    body: dict[str, Any] = Body(...),
     session: Session = Depends(get_session)
 ) -> list[dict[str, Any]]:
     """
@@ -105,12 +104,16 @@ async def suggest_next_courses(
     ```json
     POST /api/v1/validate/suggest-next
     {
-        "transcript": ["CMPT-120", "CMPT-125", "MATH-150"]
+        "transcript": ["CMPT-120", "CMPT-125", "MATH-150"],
+        "limit": 50
     }
     ```
     
     Returns a list of courses the student is eligible for.
     """
+    transcript = body.get("transcript", [])
+    limit = body.get("limit", 50)
+    
     validator = PrerequisiteValidator(session)
     suggestions = validator.suggest_next_courses(transcript, limit)
     

@@ -12,6 +12,9 @@ interface EligibleCourse {
   courseKey: string;
   title: string;
   prerequisites: string; // Raw prerequisite string from SFU
+  prerequisites_logic?: any; // Logic tree structure
+  is_eligible?: boolean; // Whether all prerequisites are met
+  missing_prerequisites?: string[]; // List of missing prerequisite courses
 }
 
 export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ isOpen, onClose }) => {
@@ -84,50 +87,27 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/validate/suggest-next?limit=50', {
+      const response = await fetch('http://localhost:8000/api/v1/validate/suggest-next', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(completedCourses)
+        body: JSON.stringify({ transcript: completedCourses, limit: 100 })
       });
 
       if (response.ok) {
         const data = await response.json();
         
-        // Fetch prerequisites for each course from the new endpoint
-        const coursesWithPrereqs = await Promise.all(
-          data.map(async (course: any) => {
-            const courseId = course.course_id || course.courseKey;
-            const [dept, number] = courseId.split('-');
-            
-            try {
-              // Fetch prerequisite from CourSys
-              const prereqResponse = await fetch(`http://localhost:8000/api/v1/prerequisites/${dept}/${number}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-              
-              if (prereqResponse.ok) {
-                const prereqData = await prereqResponse.json();
-                return {
-                  courseKey: courseId,
-                  title: course.title || '',
-                  prerequisites: prereqData.prerequisite || ''
-                };
-              }
-            } catch (error) {
-              console.error(`Failed to fetch prerequisite for ${courseId}:`, error);
-            }
-            
-            // Fallback if prerequisite fetch fails
-            return {
-              courseKey: courseId,
-              title: course.title || '',
-              prerequisites: course.prerequisites || ''
-            };
-          })
-        );
+        // Map the response to the format we need
+        const coursesWithPrereqs = data.map((course: any) => ({
+          courseKey: course.course_id,
+          title: course.title || '',
+          prerequisites: course.prerequisites || '',
+          prerequisites_logic: course.prerequisites_logic,
+          is_eligible: course.is_eligible,
+          missing_prerequisites: course.missing_prerequisites || []
+        }));
         
         setEligibleCourses(coursesWithPrereqs);
       }
@@ -220,6 +200,15 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
   };
 
   const getCourseStatus = (course: EligibleCourse): 'ready' | 'missing' | 'no-prereq' => {
+    // Use the is_eligible flag from the API if available
+    if (course.is_eligible !== undefined) {
+      if (!course.prerequisites || course.prerequisites.trim() === '') {
+        return 'no-prereq';
+      }
+      return course.is_eligible ? 'ready' : 'missing';
+    }
+    
+    // Fallback to old logic if is_eligible is not available
     const prereqString = course.prerequisites;
     
     // No prerequisites - ready to take
@@ -251,7 +240,82 @@ export const CompletedCoursesModal: React.FC<CompletedCoursesModalProps> = ({ is
     }
   };
 
+  const renderPrerequisiteLogic = (logic: any) => {
+    if (!logic) return null;
+    
+    const renderLogicNode = (node: any, depth: number = 0): JSX.Element | null => {
+      if (!node || !node.type) return null;
+      
+      if (node.type === 'COURSE') {
+        const courseId = node.course;
+        const isCompleted = courses.includes(courseId);
+        return (
+          <span
+            className={`px-2 py-1 text-xs rounded font-medium ${
+              isCompleted
+                ? 'bg-green-900 text-green-300 border border-green-700'
+                : 'bg-gray-700 text-gray-300 border border-gray-600'
+            }`}
+          >
+            {courseId}
+          </span>
+        );
+      }
+      
+      if (node.type === 'AND' && node.children) {
+        return (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {node.children.map((child: any, idx: number) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="text-purple-400 text-xs font-semibold">AND</span>}
+                {child.type === 'OR' ? (
+                  <span className="inline-flex items-center gap-1.5 px-1 border border-purple-500 rounded">
+                    <span className="text-purple-400 text-xs">( </span>
+                    {renderLogicNode(child, depth + 1)}
+                    <span className="text-purple-400 text-xs"> )</span>
+                  </span>
+                ) : (
+                  renderLogicNode(child, depth + 1)
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        );
+      }
+      
+      if (node.type === 'OR' && node.children) {
+        return (
+          <div className="inline-flex flex-wrap gap-1.5 items-center">
+            {node.children.map((child: any, idx: number) => (
+              <React.Fragment key={idx}>
+                {idx > 0 && <span className="text-purple-400 text-xs font-semibold">OR</span>}
+                {renderLogicNode(child, depth + 1)}
+              </React.Fragment>
+            ))}
+          </div>
+        );
+      }
+      
+      return null;
+    };
+    
+    return (
+      <div className="mt-3">
+        <p className="text-xs text-gray-500 mb-2">PREREQUISITES:</p>
+        <div className="bg-gray-800 p-2 rounded">
+          {renderLogicNode(logic)}
+        </div>
+      </div>
+    );
+  };
+
   const renderPrerequisites = (course: EligibleCourse) => {
+    // Use prerequisites_logic if available from the API
+    if (course.prerequisites_logic) {
+      return renderPrerequisiteLogic(course.prerequisites_logic);
+    }
+    
+    // Fallback to parsing the string
     const prereqString = course.prerequisites;
     
     if (!prereqString || prereqString.trim() === '') {

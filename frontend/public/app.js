@@ -42,7 +42,7 @@ async function handleLogin(e) {
     const errorDiv = document.getElementById('loginError');
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
+        const response = await fetch(`${API_URL}/api/v1/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -69,7 +69,7 @@ async function handleRegister(e) {
     const errorDiv = document.getElementById('registerError');
 
     try {
-        const response = await fetch(`${API_URL}/api/auth/register`, {
+        const response = await fetch(`${API_URL}/api/v1/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -99,7 +99,7 @@ function logout() {
 // User Data Functions
 async function loadUserData() {
     try {
-        const response = await fetch(`${API_URL}/api/user/me`, {
+        const response = await fetch(`${API_URL}/api/v1/user/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -119,7 +119,7 @@ async function loadUserData() {
 
 async function loadAllCourses() {
     try {
-        const response = await fetch(`${API_URL}/api/courses`);
+        const response = await fetch(`${API_URL}/api/v1/courses`);
         allCourses = await response.json();
         renderCourses();
         renderCompletedCourses();
@@ -130,8 +130,13 @@ async function loadAllCourses() {
 
 async function loadEligibleCourses() {
     try {
-        const response = await fetch(`${API_URL}/api/courses/eligible`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const response = await fetch(`${API_URL}/api/v1/validate/suggest-next`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ transcript: completedCourses, limit: 100 })
         });
         const eligibleCourses = await response.json();
         renderEligibleCourses(eligibleCourses);
@@ -145,7 +150,7 @@ async function saveCompletedCourses() {
     const selected = Array.from(checkboxes).map(cb => cb.value);
 
     try {
-        const response = await fetch(`${API_URL}/api/user/courses`, {
+        const response = await fetch(`${API_URL}/api/v1/user/courses`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -256,15 +261,68 @@ function renderEligibleCourses(courses) {
         return;
     }
 
-    container.innerHTML = courses.map(course => `
-        <div class="course-card eligible">
-            <div class="course-header">
-                <div class="course-code">${course.code}</div>
+    container.innerHTML = courses.map(course => {
+        let prereqHtml = '';
+        if (course.prerequisites_logic) {
+            prereqHtml = renderPrerequisiteTree(course.prerequisites_logic);
+        } else if (course.prerequisites) {
+            prereqHtml = `<div class="prerequisites-text">${course.prerequisites}</div>`;
+        }
+        
+        return `
+            <div class="course-card eligible">
+                <div class="course-header">
+                    <div class="course-code">${course.course_id}</div>
+                    ${!course.is_eligible ? '<span class="badge badge-warning">Missing Prerequisites</span>' : ''}
+                </div>
+                <div class="course-name">${course.title}</div>
+                ${prereqHtml}
             </div>
-            <div class="course-name">${course.name}</div>
-            ${renderPrerequisites(course.prerequisites, course.prerequisitesOr)}
-        </div>
-    `).join('');
+        `;
+    }).join('');
+}
+
+function renderPrerequisiteTree(tree) {
+    if (!tree) return '';
+    
+    const completedSet = new Set(completedCourses);
+    
+    function renderNode(node, depth = 0) {
+        if (!node) return '';
+        
+        const type = node.type;
+        
+        if (type === 'COURSE') {
+            const courseId = node.course;
+            const isCompleted = completedSet.has(courseId);
+            const className = isCompleted ? 'completed' : 'incomplete';
+            return `<span class="prerequisite-tag ${className}">${courseId}</span>`;
+        }
+        
+        if (type === 'AND') {
+            const children = node.children || [];
+            return children.map((child, index) => {
+                const childHtml = renderNode(child, depth + 1);
+                const needsParens = child.type === 'OR';
+                const prefix = index > 0 ? '<span class="logic-op">AND</span>' : '';
+                return prefix + (needsParens ? `<span class="prereq-group">( ${childHtml} )</span>` : childHtml);
+            }).join(' ');
+        }
+        
+        if (type === 'OR') {
+            const children = node.children || [];
+            return children.map((child, index) => {
+                const childHtml = renderNode(child, depth + 1);
+                const prefix = index > 0 ? '<span class="logic-op">OR</span>' : '';
+                return prefix + childHtml;
+            }).join(' ');
+        }
+        
+        return '';
+    }
+    
+    const html = renderNode(tree);
+    return `<div class="prerequisites-tree">${html}</div>`;
 }
 
 function renderPrerequisites(prerequisites, prerequisitesOr) {

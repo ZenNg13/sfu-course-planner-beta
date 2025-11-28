@@ -320,6 +320,65 @@ header h1 {
     color: #666;
 }
 
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-warning {
+    background-color: #ff9800;
+    color: white;
+}
+
+/* Prerequisite Tree */
+.prerequisites-tree {
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 24px;
+}
+
+.prerequisite-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.prerequisite-tag.completed {
+    background: #4caf50;
+    color: white;
+}
+
+.prerequisite-tag.incomplete {
+    background: #546e7a;
+    color: white;
+}
+
+.logic-op {
+    display: inline-block;
+    margin: 0 6px;
+    color: #9c27b0;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.prereq-group {
+    display: inline-block;
+    color: #9c27b0;
+    font-weight: 600;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     header {

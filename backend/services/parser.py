@@ -1,5 +1,5 @@
 """
-Prerequisite Logic Parser.
+Prerequisite Logic Parser V2 - Correct handling of comma-separated lists.
 Converts prerequisite strings into structured boolean trees.
 """
 import re
@@ -13,27 +13,18 @@ class PrerequisiteParser:
     """
     Parses SFU prerequisite strings into structured logic trees.
     
-    Examples:
-        "CMPT 120 or 125" -> {"type": "OR", "courses": ["CMPT-120", "CMPT-125"]}
-        "CMPT 120 and 125" -> {"type": "AND", "courses": ["CMPT-120", "CMPT-125"]}
-        "CMPT 120 and (MATH 150 or 151)" -> nested structure
+    Key insight: "A, B, C or D, and E" means "A AND B AND (C OR D) AND E"
+    NOT "(A AND B AND C) OR (D AND E)"
+    
+    The "or" is local to adjacent courses, not global.
     """
     
     def __init__(self):
         # Regex patterns
-        self.course_pattern = re.compile(r'\b([A-Z]{3,4})\s*(\d{3}[A-Z]?)\b')
-        self.number_only_pattern = re.compile(r'\b(\d{3}[A-Z]?)\b')
-        
+        self.course_pattern = re.compile(r'\b([A-Z]{3,4})[\s-](\d{3}[A-Z]?)\b')
+    
     def parse(self, prereq_string: str) -> Optional[dict[str, Any]]:
-        """
-        Parse a prerequisite string into a logic tree.
-        
-        Args:
-            prereq_string: Raw prerequisite string
-            
-        Returns:
-            Dictionary representing the logic tree, or None if parsing fails
-        """
+        """Parse a prerequisite string into a logic tree."""
         if not prereq_string or prereq_string.strip() == "":
             return None
         
@@ -41,7 +32,6 @@ class PrerequisiteParser:
             # Clean the string
             prereq_string = self._clean_string(prereq_string)
             
-            # If empty after cleaning, return None
             if not prereq_string:
                 return None
             
@@ -59,149 +49,150 @@ class PrerequisiteParser:
         # Remove common prefixes
         s = re.sub(r'^(Prerequisite|Corequisite|Pre-?req)s?:?\s*', '', s, flags=re.IGNORECASE)
         
+        # Remove exclusion clauses
+        s = re.sub(r'\.?\s+Students?\s+.*?(may not|cannot).*?further credit.*?(?=\.|$)', '', s, flags=re.IGNORECASE)
+        
+        # Remove grade requirements
+        s = re.sub(r'\.\s*[A-Z][^.]*?\b(at least|minimum|with)\s+(a\s+)?[A-B][+-]?.*?(?=\.|$)', '', s, flags=re.IGNORECASE)
+        
+        # Remove "One W course" type requirements
+        s = re.sub(r'\bOne\s+W\s+course,?\s*', '', s, flags=re.IGNORECASE)
+        
         # Normalize whitespace
         s = ' '.join(s.split())
         
-        # Normalize AND/OR operators
+        # Normalize 'and both' to 'and'
+        s = re.sub(r',\s*both\b', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'\bboth\b', 'and', s, flags=re.IGNORECASE)
+        
+        # Normalize AND/OR
         s = re.sub(r'\b(AND)\b', 'and', s, flags=re.IGNORECASE)
         s = re.sub(r'\b(OR)\b', 'or', s, flags=re.IGNORECASE)
         
+        # Remove trailing periods and commas
+        s = s.rstrip('.,;')
+        
         return s
     
-    def _parse_expression(self, expr: str, last_dept: Optional[str] = None) -> dict[str, Any]:
+    def _parse_expression(self, expr: str) -> dict[str, Any]:
         """
-        Recursively parse an expression into a tree structure.
+        Parse expression with correct handling of commas and operators.
         
-        This uses a simple recursive descent parser to handle AND/OR precedence
-        and parentheses.
+        Strategy:
+        1. Split by top-level " and " -> these are AND groups
+        2. For each AND group, split by "," -> these are also AND
+        3. Within each comma-separated item, split by " or " -> these are OR
+        4. Handle parentheses recursively
         """
         expr = expr.strip()
         
-        # Handle parentheses
-        if '(' in expr:
-            return self._parse_with_parentheses(expr, last_dept)
+        # Split by top-level " and " (respecting parentheses)
+        and_parts = self._split_respecting_parens(expr, ' and ')
         
-        # Split by OR (lower precedence)
-        if ' or ' in expr.lower():
-            parts = self._split_by_operator(expr, 'or')
-            if len(parts) > 1:
-                children = []
-                for part in parts:
-                    parsed = self._parse_expression(part.strip(), last_dept)
-                    if parsed:
-                        children.append(parsed)
-                
-                if len(children) == 1:
-                    return children[0]
-                elif len(children) > 1:
-                    return {"type": "OR", "children": children}
+        if len(and_parts) > 1:
+            children = []
+            for part in and_parts:
+                parsed = self._parse_and_group(part.strip())
+                if parsed:
+                    children.append(parsed)
+            
+            if len(children) == 1:
+                return children[0]
+            return {"type": "AND", "children": children}
         
-        # Split by AND (higher precedence)
-        if ' and ' in expr.lower():
-            parts = self._split_by_operator(expr, 'and')
-            if len(parts) > 1:
-                children = []
-                for part in parts:
-                    parsed = self._parse_expression(part.strip(), last_dept)
-                    if parsed:
-                        children.append(parsed)
-                
-                if len(children) == 1:
-                    return children[0]
-                elif len(children) > 1:
-                    return {"type": "AND", "children": children}
+        # No top-level AND, parse as single AND group
+        return self._parse_and_group(expr)
+    
+    def _parse_and_group(self, expr: str) -> dict[str, Any]:
+        """
+        Parse a group that's connected by commas (implicit AND).
+        Within this group, items can have local OR.
+        """
+        # Split by commas (respecting parentheses)
+        comma_parts = self._split_respecting_parens(expr, ',')
         
-        # Base case: single course or list of courses
-        courses = self._extract_courses(expr, last_dept)
+        if len(comma_parts) > 1:
+            children = []
+            for part in comma_parts:
+                parsed = self._parse_or_group(part.strip())
+                if parsed:
+                    children.append(parsed)
+            
+            if len(children) == 1:
+                return children[0]
+            return {"type": "AND", "children": children}
+        
+        # No commas, parse as OR group
+        return self._parse_or_group(expr)
+    
+    def _parse_or_group(self, expr: str) -> dict[str, Any]:
+        """Parse a group that might have local OR operators."""
+        # Check if this is a parenthesized expression
+        expr = expr.strip()
+        
+        if expr.startswith('(') and expr.endswith(')'):
+            # Remove outer parentheses and parse recursively
+            inner = expr[1:-1].strip()
+            return self._parse_expression(inner)
+        
+        # Split by " or " (respecting parentheses)
+        or_parts = self._split_respecting_parens(expr, ' or ')
+        
+        if len(or_parts) > 1:
+            children = []
+            for part in or_parts:
+                parsed = self._parse_atom(part.strip())
+                if parsed:
+                    children.append(parsed)
+            
+            if len(children) == 1:
+                return children[0]
+            return {"type": "OR", "children": children}
+        
+        # No OR, parse as atom
+        return self._parse_atom(expr)
+    
+    def _parse_atom(self, expr: str) -> dict[str, Any]:
+        """Parse a single atom (course, parenthesized expression, or unknown)."""
+        expr = expr.strip()
+        
+        if not expr:
+            return None
+        
+        # Handle parenthesized expressions - parse as or_group to avoid infinite recursion
+        if expr.startswith('(') and expr.endswith(')'):
+            inner = expr[1:-1].strip()
+            return self._parse_or_group(inner)
+        
+        # Extract courses
+        courses = self._extract_courses(expr)
         
         if len(courses) == 1:
             return {"type": "COURSE", "course": courses[0]}
         elif len(courses) > 1:
-            # Multiple courses without explicit AND/OR - assume OR
+            # Multiple courses in a single atom - should be OR
             return {
                 "type": "OR",
                 "children": [{"type": "COURSE", "course": c} for c in courses]
             }
         else:
-            # No courses found - might be a complex expression
+            # No courses found
             return {"type": "UNKNOWN", "expression": expr}
     
-    def _parse_with_parentheses(self, expr: str, last_dept: Optional[str] = None) -> dict[str, Any]:
-        """Parse expressions with parentheses."""
-        # Find matching parentheses and recursively parse
-        result_parts = []
-        current = ""
-        paren_depth = 0
-        i = 0
-        
-        while i < len(expr):
-            char = expr[i]
-            
-            if char == '(':
-                if paren_depth == 0 and current.strip():
-                    result_parts.append(('text', current.strip()))
-                    current = ""
-                paren_depth += 1
-                if paren_depth > 1:
-                    current += char
-            elif char == ')':
-                paren_depth -= 1
-                if paren_depth == 0:
-                    # Parse the content inside parentheses
-                    result_parts.append(('paren', current.strip()))
-                    current = ""
-                else:
-                    current += char
-            else:
-                current += char
-            
-            i += 1
-        
-        if current.strip():
-            result_parts.append(('text', current.strip()))
-        
-        # Now we have parts - rebuild the expression with parsed parentheses
-        if not result_parts:
-            return {"type": "UNKNOWN", "expression": expr}
-        
-        # For simplicity, if we have parentheses, treat them as groups in OR/AND
-        parsed_parts = []
-        for part_type, part_content in result_parts:
-            if part_type == 'paren':
-                parsed = self._parse_expression(part_content, last_dept)
-                parsed_parts.append(parsed)
-            else:
-                parsed = self._parse_expression(part_content, last_dept)
-                parsed_parts.append(parsed)
-        
-        if len(parsed_parts) == 1:
-            return parsed_parts[0]
-        
-        # Determine operator between parts
-        if ' or ' in expr.lower():
-            return {"type": "OR", "children": parsed_parts}
-        else:
-            return {"type": "AND", "children": parsed_parts}
-    
-    def _split_by_operator(self, expr: str, operator: str) -> list[str]:
-        """Split expression by operator, respecting parentheses."""
+    def _split_respecting_parens(self, expr: str, delimiter: str) -> list[str]:
+        """Split expression by delimiter, respecting parentheses."""
         parts = []
         current = ""
         paren_depth = 0
-        
-        # Create pattern for the operator
-        pattern = f' {operator} '
         i = 0
         
         while i < len(expr):
-            # Check for operator at current position (case-insensitive)
-            if paren_depth == 0 and i + len(pattern) <= len(expr):
-                substr = expr[i:i+len(pattern)]
-                if substr.lower() == pattern:
-                    parts.append(current.strip())
-                    current = ""
-                    i += len(pattern)
-                    continue
+            # Check if we're at the delimiter
+            if paren_depth == 0 and expr[i:i+len(delimiter)] == delimiter:
+                parts.append(current)
+                current = ""
+                i += len(delimiter)
+                continue
             
             char = expr[i]
             if char == '(':
@@ -212,55 +203,38 @@ class PrerequisiteParser:
             current += char
             i += 1
         
-        if current.strip():
-            parts.append(current.strip())
+        if current:
+            parts.append(current)
         
-        return [p for p in parts if p]
+        return [p.strip() for p in parts if p.strip()]
     
-    def _extract_courses(self, text: str, last_dept: Optional[str] = None) -> list[str]:
-        """
-        Extract course codes from text.
-        
-        Handles cases like:
-            "CMPT 120" -> ["CMPT-120"]
-            "CMPT 120 or 125" -> ["CMPT-120", "CMPT-125"] (with context)
-            "120" -> ["CMPT-120"] (if last_dept is "CMPT")
-        """
+    def _extract_courses(self, text: str) -> list[str]:
+        """Extract course codes from text."""
         courses = []
+        last_dept = None
         
         # Find full course codes (DEPT NUMBER)
-        matches = self.course_pattern.findall(text)
-        for dept, number in matches:
+        for match in self.course_pattern.finditer(text):
+            dept, number = match.groups()
             courses.append(f"{dept}-{number}")
             last_dept = dept
         
-        # Find standalone numbers (inherit department from context)
-        if last_dept:
-            # Remove already matched full courses to avoid duplicates
-            remaining_text = text
-            for dept, number in matches:
-                remaining_text = remaining_text.replace(f"{dept} {number}", "", 1)
-                remaining_text = remaining_text.replace(f"{dept}{number}", "", 1)
-            
-            # Find remaining numbers
-            number_matches = self.number_only_pattern.findall(remaining_text)
-            for number in number_matches:
-                course_code = f"{last_dept}-{number}"
-                if course_code not in courses:
-                    courses.append(course_code)
+        # Find standalone numbers (inherit department)
+        if last_dept and not courses:
+            # If no full courses found but we have context, look for numbers
+            number_pattern = re.compile(r'\b(\d{3}[A-Z]?)\b')
+            for match in number_pattern.finditer(text):
+                number = match.group(1)
+                # Make sure it's not already part of a full course code
+                pos = match.start()
+                if pos > 0 and text[pos-1].isalpha():
+                    continue
+                courses.append(f"{last_dept}-{number}")
         
         return courses
     
     def flatten_courses(self, tree: Optional[dict[str, Any]]) -> list[str]:
-        """
-        Flatten a prerequisite tree into a simple list of all mentioned courses.
-        
-        Args:
-            tree: The prerequisite tree structure
-            
-        Returns:
-            List of course codes
-        """
+        """Flatten a prerequisite tree into a list of all courses."""
         if not tree:
             return []
         
@@ -279,15 +253,7 @@ class PrerequisiteParser:
         return courses
     
     def tree_to_string(self, tree: Optional[dict[str, Any]]) -> str:
-        """
-        Convert a prerequisite tree back to a human-readable string.
-        
-        Args:
-            tree: The prerequisite tree structure
-            
-        Returns:
-            Human-readable prerequisite string
-        """
+        """Convert a prerequisite tree to a human-readable string."""
         if not tree:
             return ""
         
@@ -299,13 +265,15 @@ class PrerequisiteParser:
         elif node_type in ("AND", "OR"):
             children = tree.get("children", [])
             child_strings = [self.tree_to_string(child) for child in children]
-            operator = " and " if node_type == "AND" else " or "
+            operator = " AND " if node_type == "AND" else " OR "
             
-            # Add parentheses if nested
+            # Add parentheses for nested structures
             formatted_children = []
             for i, (child, child_str) in enumerate(zip(children, child_strings)):
-                if child.get("type") in ("AND", "OR") and child.get("type") != node_type:
-                    formatted_children.append(f"({child_str})")
+                child_type = child.get("type")
+                # Add parens if child is opposite operator or has nested structure
+                if child_type in ("AND", "OR") and child_type != node_type:
+                    formatted_children.append(f"( {child_str} )")
                 else:
                     formatted_children.append(child_str)
             

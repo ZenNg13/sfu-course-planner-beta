@@ -83,6 +83,7 @@ class PrerequisiteValidator:
         
         if not course:
             return {
+                "target_course": target_course,
                 "is_valid": False,
                 "missing_courses": [],
                 "prerequisite_tree": None,
@@ -92,6 +93,7 @@ class PrerequisiteValidator:
         # If no prerequisites, automatically valid
         if not course.prerequisites_logic:
             return {
+                "target_course": target_course,
                 "is_valid": True,
                 "missing_courses": [],
                 "prerequisite_tree": None,
@@ -111,6 +113,7 @@ class PrerequisiteValidator:
         )
         
         return {
+            "target_course": target_course,
             "is_valid": is_valid,
             "missing_courses": missing,
             "prerequisite_tree": course.prerequisites_logic,
@@ -249,13 +252,15 @@ class PrerequisiteValidator:
     ) -> list[dict[str, Any]]:
         """
         Suggest courses the student can take next based on their transcript.
+        Shows courses where at least one prerequisite is met (for courses with prerequisites)
+        or courses with no prerequisites.
         
         Args:
             transcript: List of completed courses
             limit: Maximum number of suggestions
             
         Returns:
-            List of course suggestions with metadata
+            List of course suggestions with metadata including whether prerequisites are fully met
         """
         if not self.graph:
             self.build_prerequisite_graph()
@@ -279,14 +284,24 @@ class PrerequisiteValidator:
                     transcript_set
                 )
                 
-                if is_valid:
+                # Check if at least one prerequisite is met
+                has_any_prereq = self._has_any_prerequisite(
+                    course.prerequisites_logic,
+                    transcript_set
+                )
+                
+                # Include if fully eligible OR if at least one prereq is met
+                if is_valid or has_any_prereq:
                     suggestions.append({
                         "course_id": course.id,
                         "title": course.title,
                         "dept": course.dept,
                         "number": course.number,
                         "credits": course.credits,
-                        "prerequisites": course.prerequisites_raw or ""
+                        "prerequisites": course.prerequisites_raw or "",
+                        "prerequisites_logic": course.prerequisites_logic,
+                        "is_eligible": is_valid,
+                        "missing_prerequisites": missing if not is_valid else []
                     })
             else:
                 # No prerequisites - always available
@@ -295,11 +310,45 @@ class PrerequisiteValidator:
                     "title": course.title,
                     "dept": course.dept,
                     "prerequisites": course.prerequisites_raw or "",
+                    "prerequisites_logic": None,
                     "number": course.number,
-                    "credits": course.credits
+                    "credits": course.credits,
+                    "is_eligible": True,
+                    "missing_prerequisites": []
                 })
         
         return suggestions[:limit]
+    
+    def _has_any_prerequisite(
+        self,
+        tree: dict[str, Any],
+        completed_courses: set[str]
+    ) -> bool:
+        """
+        Check if the student has completed at least one prerequisite course.
+        
+        Args:
+            tree: Prerequisite logic tree
+            completed_courses: Set of completed course IDs
+            
+        Returns:
+            True if at least one prerequisite course is completed
+        """
+        node_type = tree.get("type")
+        
+        if node_type == "COURSE":
+            course = tree.get("course")
+            return course in completed_courses
+        
+        elif node_type in ["AND", "OR"]:
+            # Check if any child has a completed course
+            for child in tree.get("children", []):
+                if self._has_any_prerequisite(child, completed_courses):
+                    return True
+            return False
+        
+        else:
+            return False
     
     def _normalize_course_id(self, course_id: str) -> str:
         """
