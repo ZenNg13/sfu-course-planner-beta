@@ -109,5 +109,26 @@ export const api = {
     );
     if (!response.ok) throw new Error('Failed to fetch batch enrollment');
     return response.json();
+  },
+
+  // Get professor rating from RateMyProfessors
+  async getProfessorRating(professorName: string): Promise<{
+    found: boolean;
+    data?: {
+      name: string;
+      rmpId: string;
+      rating: number;
+      numRatings: number;
+      wouldTakeAgain?: number;
+      difficulty?: number;
+      department: string;
+    };
+    message?: string;
+  }> {
+    const response = await fetch(
+      `${API_BASE_URL}/professors/rating/${encodeURIComponent(professorName)}`
+    );
+    if (!response.ok) throw new Error('Failed to fetch professor rating');
+    return response.json();
   }
 };

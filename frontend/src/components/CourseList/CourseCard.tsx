@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Trash2, MapPin } from 'lucide-react';
 import { CourseSection } from '../../types';
 import { useCourseStore } from '../../stores/courseStore';
 import { useSingleEnrollment } from '../../hooks/useEnrollmentData';
+import { api } from '../../services/api';
 
 interface CourseCardProps {
   course: CourseSection;
@@ -10,6 +11,9 @@ interface CourseCardProps {
 
 export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [profRating, setProfRating] = useState<any>(null);
+  const [ratingLoading, setRatingLoading] = useState(false);
+  
   const courseGroups = useCourseStore((state) => state.courseGroups);
   const unscheduleSection = useCourseStore((state) => state.unscheduleSection);
 
@@ -36,6 +40,21 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const courseGroup = courseGroups.find(g => 
     g.sections.some(s => s.id === course.id)
   );
+
+  // Fetch professor rating when card is expanded
+  useEffect(() => {
+    if (isExpanded && !profRating && !ratingLoading && course.instructor !== 'TBA') {
+      setRatingLoading(true);
+      api.getProfessorRating(course.instructor)
+        .then(result => {
+          if (result.found && result.data) {
+            setProfRating(result.data);
+          }
+        })
+        .catch(err => console.error('Failed to fetch professor rating:', err))
+        .finally(() => setRatingLoading(false));
+    }
+  }, [isExpanded, course.instructor, profRating, ratingLoading]);
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -116,16 +135,31 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
             
             <div>
               <div className="text-xs text-gray-500 mb-1">Professor Rating</div>
-              <div className="text-sm font-medium text-yellow-400">
-                {course.stats.profRating}
-              </div>
+              {ratingLoading ? (
+                <div className="text-sm font-medium text-gray-400">Loading...</div>
+              ) : profRating ? (
+                <>
+                  <div className="text-sm font-medium text-yellow-400">
+                    {profRating.rating}/5
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    ({profRating.numRatings} ratings)
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm font-medium text-gray-400">
+                  {course.instructor === 'TBA' ? 'TBA' : 'Not found'}
+                </div>
+              )}
               <a 
-                href={course.stats.profRMPId ? `https://www.ratemyprofessors.com/professor/${course.stats.profRMPId}` : 'https://www.ratemyprofessors.com'}
+                href={profRating 
+                  ? `https://www.ratemyprofessors.com/professor/${profRating.rmpId}` 
+                  : `https://www.ratemyprofessors.com/search/professors/1482?q=${encodeURIComponent(course.instructor)}`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
               >
-                RateMyProfessor.com
+                RateMyProfessors.com
               </a>
             </div>
             
