@@ -1,0 +1,249 @@
+🔍 Discovering available terms...
+
+✅ 2025: fall, spring, summer
+✅ 2024: fall, spring, summer
+✅ 2023: fall, spring, summer
+
+🚀 Starting SFU Course Crawler
+📅 Target: FALL 2025
+🏢 Departments: CMPT, MATH, STAT, MACM
+
+📚 Crawling CMPT courses for fall 2025...
+  → Fetching CMPT 105w...
+    ✓ d100: 93/100 enrolled
+    ✓ e100: 190/200 enrolled, 2 waitlist
+  → Fetching CMPT 120...
+    ✓ d100: 161/331 enrolled
+    ✓ d200: 83/200 enrolled
+    ✓ d300: 198/200 enrolled, 10 waitlist
+  → Fetching CMPT 125...
+    ✓ d100: 192/200 enrolled, 1 waitlist
+    ✓ d101: 192/200 enrolled, 1 waitlist
+    ✓ d102: 192/200 enrolled, 1 waitlist
+    ✓ d103: 192/200 enrolled, 1 waitlist
+    ✓ d104: 192/200 enrolled, 1 waitlist
+    ✓ d105: 192/200 enrolled, 1 waitlist
+    ✓ d106: 192/200 enrolled, 1 waitlist
+    ✓ d107: 192/200 enrolled, 1 waitlist
+    ✓ d108: 192/200 enrolled, 1 waitlist
+  → Fetching CMPT 130...
+    ✓ d100: 206/212 enrolled, 1 waitlist
+    ✓ d101: 206/212 enrolled, 1 waitlist
+    ✓ d102: 206/212 enrolled, 1 waitlist
+    ✓ d103: 206/212 enrolled, 1 waitlist
+    ✓ d104: 206/212 enrolled, 1 waitlist
+    ✓ d105: 206/212 enrolled, 1 waitlist
+    ✓ d106: 206/212 enrolled, 1 waitlist
+    ✓ d107: 206/212 enrolled, 1 waitlist
+    ✓ d108: 206/212 enrolled, 1 waitlist
+  → Fetching CMPT 201...
+    ✓ d100: 149/150 enrolled, 16 waitlist
+    ✓ d101: 149/150 enrolled, 16 waitlist
+    ✓ d102: 149/150 enrolled, 16 waitlist
+    ✓ d103: 149/150 enrolled, 16 waitlist
+    ✓ d104: 149/150 enrolled, 16 waitlist
+    ✓ d105: 149/150 enrolled, 16 waitlist
+    ✓ d106: 149/150 enrolled, 16 waitlist
+    ✓ d200: 200/200 enrolled, 4 waitlist
+    ✓ d201: 200/200 enrolled, 4 waitlist
+    ✓ d202: 200/200 enrolled, 4 waitlist
+    ✓ d203: 200/200 enrolled, 4 waitlist
+    ✓ d204: 200/200 enrolled, 4 waitlist
+    ✓ d205: 200/200 enrolled, 4 waitlist
+    ✓ d206: 200/200 enrolled, 4 waitlist
+    ✓ d207: 200/200 enrolled, 4 waitlist
+    ✓ d208: 200/200 enrolled, 4 waitlist
+  → Fetching CMPT 210...
+    ✓ d100: 200/200 enrolled, 39 waitlist
+    ✓ d101: 200/200 enrolled, 39 waitlist
+    ✓ d102: 200/200 enrolled, 39 waitlist
+    ✓ d103: 200/200 enrolled, 39 waitlist
+    ✓ d104: 200/200 enrolled, 39 waitlist
+    ✓ d105: 200/200 enrolled, 39 waitlist
+    ✓ d106: 200/200 enrolled, 39 waitlist
+    ✓ d107: 200/200 enrolled, 39 waitlist
+    ✓ d108: 200/200 enrolled, 39 waitlist
+  → Fetching CMPT 213...
+    ✓ d100: 70/120 enrolled
+  → Fetching CMPT 225...
+    ✓ d100: 200/200 enrolled, 13 waitlist
+    ✓ d101: 200/200 enrolled, 13 waitlist
+    ✓ d102: 200/200 enrolled, 13 waitlist
+    ✓ d103: 200/200 enrolled, 13 waitlist
+    ✓ d104: 200/200 enrolled, 13 waitlist
+    ✓ d105: 200/200 enrolled, 13 waitlist
+    ✓ d106: 200/200 enrolled, 13 waitlist
+    ✓ d107: 200/200 enrolled, 13 waitlist
+    ✓ d108: 200/200 enrolled, 13 waitlist
+    ✓ d200: 82/200 enrolled
+    ✓ d201: 82/200 enrolled
+    ✓ d202: 82/200 enrolled
+    ✓ d203: 82/200 enrolled
+    ✓ d204: 82/200 enrolled
+    ✓ d205: 82/200 enrolled
+    ✓ d206: 82/200 enrolled
+    ✓ d207: 82/200 enrolled
+    ✓ d208: 82/200 enrolled
+  → Fetching CMPT 263...
+    ✓ d200: 41/120 enrolled
+  → Fetching CMPT 276...
+    ✓ d100: 96/100 enrolled, 5 waitlist
+    ✓ d200: 68/100 enrolled
+    ✓ d300: 95/100 enrolled, 1 waitlist
+  → Fetching CMPT 295...
+    ✓ d100: 200/200 enrolled, 28 waitlist
+    ✓ d101: 200/200 enrolled, 28 waitlist
+    ✓ d102: 200/200 enrolled, 28 waitlist
+    ✓ d103: 200/200 enrolled, 28 waitlist
+    ✓ d104: 200/200 enrolled, 28 waitlist
+    ✓ d105: 200/200 enrolled, 28 waitlist
+    ✓ d106: 200/200 enrolled, 28 waitlist
+    ✓ d107: 200/200 enrolled, 28 waitlist
+    ✓ d108: 200/200 enrolled, 28 waitlist
+    ✓ d200: 155/200 enrolled, 1 waitlist
+    ✓ d201: 155/200 enrolled, 1 waitlist
+    ✓ d202: 155/200 enrolled, 1 waitlist
+  → Fetching CMPT 307...
+    ✓ d100: 145/150 enrolled, 13 waitlist
+    ✓ e100: 97/150 enrolled
+  → Fetching CMPT 308...
+    ✓ d100: 26/100 enrolled
+  → Fetching CMPT 310...
+    ✓ d100: 127/141 enrolled, 2 waitlist
+    ✓ d200: 134/150 enrolled
+  → Fetching CMPT 340...
+    ✓ ol01: 73/150 enrolled
+  → Fetching CMPT 354...
+    ✓ d100: 150/150 enrolled, 15 waitlist
+  → Fetching CMPT 361...
+    ✓ d100: 117/150 enrolled
+  → Fetching CMPT 362...
+    ✓ d100: 135/150 enrolled
+  → Fetching CMPT 365...
+    ✓ d100: 143/150 enrolled, 1 waitlist
+  → Fetching CMPT 371...
+    ✓ d100: 141/141 enrolled, 5 waitlist
+  → Fetching CMPT 373...
+    ✓ d100: 99/100 enrolled
+  → Fetching CMPT 376w...
+    ✓ d100: 100/100 enrolled, 15 waitlist
+    ✓ d200: 101/100 enrolled, 12 waitlist
+  → Fetching CMPT 383...
+    ✓ d100: 119/150 enrolled, 1 waitlist
+  → Fetching CMPT 403...
+    ✓ d100: 138/150 enrolled, 1 waitlist
+  → Fetching CMPT 405...
+    ✓ d100: 45/75 enrolled
+  → Fetching CMPT 409...
+    ✓ d100: 10/30 enrolled
+    ✓ d200: 8/20 enrolled
+  → Fetching CMPT 410...
+    ✓ d100: 103/130 enrolled
+  → Fetching CMPT 413...
+    ✓ d100: 84/100 enrolled, 1 waitlist
+  → Fetching CMPT 415...
+    ✓ d100: 1/1 enrolled
+    ✓ d200: 2/2 enrolled
+    ✓ d300: 1/1 enrolled
+    ✓ d400: 6/6 enrolled
+    ✓ d500: 1/1 enrolled
+    ✓ d600: 1/1 enrolled
+    ✓ d700: 1/1 enrolled
+    ✓ d800: 1/1 enrolled
+    ✓ d900: 2/2 enrolled
+  → Fetching CMPT 416...
+    ✓ d100: 1/5 enrolled
+    ✓ d200: 2/5 enrolled
+    ✓ d300: 3/5 enrolled
+    ✓ d400: 3/5 enrolled
+    ✓ d500: 1/5 enrolled
+    ✓ d600: 1/5 enrolled
+    ✓ d700: 4/5 enrolled
+  → Fetching CMPT 417...
+    ✓ d100: 92/97 enrolled, 2 waitlist
+  → Fetching CMPT 419...
+    ✓ d100: 20/29 enrolled
+    ✓ d200: 44/45 enrolled, 2 waitlist
+    ✓ d300: 14/14 enrolled
+  → Fetching CMPT 426...
+    ✓ d100: 49/80 enrolled
+    ✓ d200: 4/80 enrolled
+    ✓ d300: 4/40 enrolled
+    ✓ d400: 2/40 enrolled
+    ✓ i100: 3/40 enrolled
+  → Fetching CMPT 427...
+    ✓ d100: 43/80 enrolled
+    ✓ d200: 6/80 enrolled
+    ✓ d300: 4/40 enrolled
+    ✓ d400: 0/40 enrolled
+    ✓ i100: 0/40 enrolled
+  → Fetching CMPT 428...
+    ✓ d100: 36/80 enrolled
+    ✓ d200: 6/40 enrolled
+    ✓ d300: 4/40 enrolled
+    ✓ d400: 1/40 enrolled
+    ✓ i100: 0/40 enrolled
+  → Fetching CMPT 429...
+    ✓ d100: 23/40 enrolled
+    ✓ d200: 1/40 enrolled
+    ✓ d300: 4/40 enrolled
+    ✓ d400: 0/40 enrolled
+    ✓ i100: 0/40 enrolled
+  → Fetching CMPT 430...
+    ✓ d100: 9/80 enrolled
+    ✓ d200: 0/80 enrolled
+    ✓ d300: 1/40 enrolled
+    ✓ d400: 0/40 enrolled
+    ✓ i100: 0/40 enrolled
+  → Fetching CMPT 431...
+    ✓ d100: 94/115 enrolled
+  → Fetching CMPT 441...
+    ✓ e100: 40/55 enrolled, 2 waitlist
+  → Fetching CMPT 454...
+    ✓ d100: 119/150 enrolled
+  → Fetching CMPT 459...
+    ✓ d100: 85/94 enrolled, 1 waitlist
+  → Fetching CMPT 464...
+    ✓ d100: 33/45 enrolled
+  → Fetching CMPT 469...
+    ✓ d100: 10/22 enrolled
+  → Fetching CMPT 477...
+    ✓ d100: 90/91 enrolled, 9 waitlist
+  → Fetching CMPT 479...
+    ✓ d100: 16/19 enrolled
+    ✓ e100: 11/20 enrolled
+    ✓ e200: 6/20 enrolled
+  → Fetching CMPT 489...
+    ✓ d100: 22/25 enrolled
+  → Fetching CMPT 494...
+    ✓ d100: 4/10 enrolled
+    ✓ d200: 3/10 enrolled
+    ✓ d300: 2/10 enrolled
+  → Fetching CMPT 495...
+    ✓ d100: 4/10 enrolled
+    ✓ d200: 3/10 enrolled
+    ✓ d300: 2/2 enrolled
+  → Fetching CMPT 496...
+    ✓ d100: 1/10 enrolled
+    ✓ d200: 0/10 enrolled
+  → Fetching CMPT 497...
+    ✓ d100: 0/5 enrolled
+  → Fetching CMPT 498...
+    ✓ d100: 0/2 enrolled
+    ✓ d200: 0/2 enrolled
+    ✓ d300: 0/2 enrolled
+  → Fetching CMPT 626...
+    ✓ g300: 7/5 enrolled
+    ✓ g400: 2/5 enrolled
+    ✓ g500: 8/5 enrolled
+    ✓ g600: 0/5 enrolled
+    ✓ g700: 2/5 enrolled
+    ✓ g800: 2/5 enrolled
+    ✓ i100: 0/5 enrolled
+    ✓ i200: 2/5 enrolled
+    ✓ i400: 1/5 enrolled
+  → Fetching CMPT 627...
+    ✓ g300: 19/30 enrolled
+    ✓ g400: 2/15 enrolled
+    ✓ g500: 2/15 enrolled
+� g500: 2/15 enrolled
