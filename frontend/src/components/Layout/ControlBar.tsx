@@ -118,10 +118,16 @@ export const ControlBar: React.FC = () => {
     fetchCourses();
   }, []); // Only fetch once on mount
 
-  // Filter available courses based on search query and what's not already added
+  // Filter available courses based on search query, selected department, and what's not already added
   const availableCourses = allCourses.filter(course => {
     const isAlreadyAdded = courseGroups.some(g => g.courseKey === course.courseKey);
     if (isAlreadyAdded) return false;
+    
+    // Extract department code from selected department (e.g., "CMPT - Computing Science" -> "CMPT")
+    const selectedDeptCode = selectedDept.split(' - ')[0];
+    
+    // Filter by department first
+    if (course.dept !== selectedDeptCode) return false;
     
     if (!searchQuery) return false;
     
