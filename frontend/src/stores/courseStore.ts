@@ -60,7 +60,7 @@ interface CourseStore {
   loadScheduleFromBackend: () => Promise<void>;
   addCourseGroup: (group: CourseGroup) => Promise<{success: boolean; error?: string}>;
   removeCourseGroup: (courseKey: string) => void;
-  scheduleSection: (courseKey: string, sectionId: string) => {success: boolean; error?: string};
+  scheduleSection: (courseKey: string, sectionId: string, combinedSection?: CourseSection) => {success: boolean; error?: string};
   unscheduleSection: (courseKey: string) => void;
   clearAll: () => void;
   getTotalCredits: () => number;
@@ -150,12 +150,12 @@ export const useCourseStore = create<CourseStore>()(
     });
   },
   
-  scheduleSection: (courseKey: string, sectionId: string): {success: boolean; error?: string} => {
+  scheduleSection: (courseKey: string, sectionId: string, combinedSection?: CourseSection): {success: boolean; error?: string} => {
     const state = get();
     const group = state.courseGroups.find(g => g.courseKey === courseKey);
     if (!group) return { success: false, error: 'Course not found' };
     
-    const section = group.sections.find(s => s.id === sectionId);
+    const section = combinedSection || group.sections.find(s => s.id === sectionId);
     if (!section) return { success: false, error: 'Section not found' };
     
     // Check for time conflicts with already scheduled courses
@@ -172,7 +172,12 @@ export const useCourseStore = create<CourseStore>()(
     set((state) => {
       const newGroups = state.courseGroups.map((g) =>
         g.courseKey === courseKey
-          ? { ...g, isScheduled: true, scheduledSectionId: sectionId }
+          ? { 
+              ...g, 
+              isScheduled: true, 
+              scheduledSectionId: sectionId,
+              combinedSection: combinedSection // Store combined section separately
+            } as any
           : g
       );
       saveScheduleToBackend(state.userId, newGroups);
@@ -212,7 +217,11 @@ export const useCourseStore = create<CourseStore>()(
     const { courseGroups } = get();
     return courseGroups
       .filter((g) => g.isScheduled && g.scheduledSectionId)
-      .map((g) => g.sections.find((s) => s.id === g.scheduledSectionId)!)
+      .map((g) => {
+        const section = g.sections.find((s) => s.id === g.scheduledSectionId);
+        // If combined section was stored, use it; otherwise use original section
+        return (g as any).combinedSection || section;
+      })
       .filter(Boolean);
   },
   
@@ -281,7 +290,6 @@ export const useCourseStore = create<CourseStore>()(
 }),
     {
       name: 'course-storage',
-      // Partition storage by userId to keep courses separate per user
       partialize: (state) => ({
         userId: state.userId,
         courseGroups: state.courseGroups,

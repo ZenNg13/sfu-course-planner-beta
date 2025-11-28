@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlmodel import Session, select, or_, and_
 
 from database import get_session
+from crawler.sfu_api_client import SFUAPIClient
 from models import Course, Section, CourseRead, SectionRead, SectionWithCourse
 
 router = APIRouter(prefix="/courses", tags=["courses"])
@@ -37,133 +38,6 @@ async def get_all_courses() -> list[dict[str, Any]]:
         courses = json.load(f)
     
     return courses
-
-
-@router.get("/enrollment/{dept}/{number}/{section}")
-async def get_live_enrollment(
-    dept: str,
-    number: str,
-    section: str,
-    term: Optional[str] = Query("2025/fall", description="Term in format YYYY/season")
-) -> dict[str, Any]:
-    """
-    Get live enrollment data for a specific course section.
-    
-    Example: GET /api/v1/courses/enrollment/CMPT/120/D100
-    
-    Returns enrollment data from the JSON file.
-    """
-    json_path = Path(__file__).parent.parent / "data" / "fall_2025_courses_with_enrollment.json"
-    
-    if not json_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="Course data file not found"
-        )
-    
-    with open(json_path, 'r', encoding='utf-8') as f:
-        courses = json.load(f)
-    
-    # Find the specific course section
-    for course in courses:
-        info = course.get('info', {})
-        if (info.get('dept') == dept and 
-            info.get('number') == number and 
-            info.get('section') == section):
-            
-            enrollment_data = course.get('enrollmentData', {})
-            return {
-                "dept": dept,
-                "number": number,
-                "section": section,
-                "enrolled": enrollment_data.get('enrolled', 'N/A'),
-                "waitlist": enrollment_data.get('waitlist') or '0',
-                "timestamp": datetime.utcnow().isoformat()
-            }
-    
-    raise HTTPException(
-        status_code=404,
-        detail=f"Course section {dept} {number} {section} not found"
-    )
-
-
-@router.post("/enrollment/batch")
-async def get_batch_enrollment(
-    courses_list: list[dict[str, str]] = Body(..., description="List of course sections"),
-    term: Optional[str] = Query("2025/fall", description="Term in format YYYY/season")
-) -> list[dict[str, Any]]:
-    """
-    Get live enrollment data for multiple course sections.
-    
-    Example:
-    ```json
-    POST /api/v1/courses/enrollment/batch
-    {
-        "courses": [
-            {"dept": "CMPT", "number": "120", "section": "D100"},
-            {"dept": "CMPT", "number": "125", "section": "D100"}
-        ]
-    }
-    ```
-    """
-    json_path = Path(__file__).parent.parent / "data" / "fall_2025_courses_with_enrollment.json"
-    
-    if not json_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="Course data file not found"
-        )
-    
-    with open(json_path, 'r', encoding='utf-8') as f:
-        all_courses = json.load(f)
-    
-    results = []
-    for course_req in courses_list:
-        dept = course_req.get('dept')
-        number = course_req.get('number')
-        section = course_req.get('section')
-        
-        # Find matching course
-        found = False
-        for course in all_courses:
-            info = course.get('info', {})
-            if (info.get('dept') == dept and 
-                info.get('number') == number and 
-                info.get('section') == section):
-                
-                enrollment_data = course.get('enrollmentData', {})
-                results.append({
-                    "dept": dept,
-                    "number": number,
-                    "section": section,
-                    "enrolled": enrollment_data.get('enrolled', 'N/A'),
-                    "waitlist": enrollment_data.get('waitlist') or '0',
-                    "timestamp": datetime.utcnow().isoformat()
-                })
-                found = True
-                break
-        
-        if not found:
-            results.append({
-                "dept": dept,
-                "number": number,
-                "section": section,
-                "enrolled": 'N/A',
-                "waitlist": '0',
-                "timestamp": datetime.utcnow().isoformat()
-            })
-    
-    return results
-    
-    if not json_path.exists():
-        raise HTTPException(status_code=404, detail="Course data file not found")
-    
-    try:
-        with open(json_path, 'r', encoding='utf-8') as f:
-            courses = json.load(f)
-        return courses
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading course data: {str(e)}")
 
 
 @router.get("/search", response_model=list[CourseRead])
@@ -343,9 +217,6 @@ async def get_live_enrollment(
             "timestamp": "2025-11-25T10:30:00"
         }
     """
-    from crawler.sfu_api_client import SFUAPIClient
-    from datetime import datetime
-    
     client = SFUAPIClient(rate_limit_delay=0.1)
     
     # Parse term format

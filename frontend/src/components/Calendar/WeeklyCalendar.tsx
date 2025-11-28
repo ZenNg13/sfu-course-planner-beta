@@ -111,7 +111,7 @@ export const WeeklyCalendar: React.FC = () => {
 
   const handleSelectSection = (section: CourseSection) => {
     if (pendingCourseGroup) {
-      const result = scheduleSection(pendingCourseGroup.courseKey, section.id);
+      const result = scheduleSection(pendingCourseGroup.courseKey, section.id, section);
       
       if (!result.success) {
         alert(result.error || 'Failed to schedule section');

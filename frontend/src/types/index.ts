@@ -50,7 +50,7 @@ export interface CourseStore {
   courseGroups: CourseGroup[];
   addCourseGroup: (group: CourseGroup) => void;
   removeCourseGroup: (courseKey: string) => void;
-  scheduleSection: (courseKey: string, sectionId: string) => void;
+  scheduleSection: (courseKey: string, sectionId: string, combinedSection?: CourseSection) => void;
   unscheduleSection: (courseKey: string) => void;
   clearAll: () => void;
   getTotalCredits: () => number;

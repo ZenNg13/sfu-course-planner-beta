@@ -13,11 +13,16 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const courseGroups = useCourseStore((state) => state.courseGroups);
   const unscheduleSection = useCourseStore((state) => state.unscheduleSection);
 
-  // Fetch live enrollment data
+  // For combined sections like "D100+D102", extract the lecture section (D100) for enrollment data
+  const lectureSection = course.section.includes('+') 
+    ? course.section.split('+')[0] // Get D100 from "D100+D102"
+    : course.section;
+
+  // Fetch live enrollment data using lecture section only
   const enrollmentData = useSingleEnrollment(
     course.dept,
     course.number,
-    course.section,
+    lectureSection,
     '2025/fall'
   );
 
@@ -25,8 +30,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const termCode = "2025fa";
   
   // Convert section format: "D100" -> "d1", "D101" -> "d1", "D200" -> "d2"
-  // Take first letter + first digit only (D100 -> d1, D101 -> d1, D200 -> d2)
-  const sectionCode = course.section.toLowerCase().replace(/^([a-z])(\d)\d+$/, '$1$2');
+  const sectionCode = lectureSection.toLowerCase().replace(/^([a-z])(\d)\d+$/, '$1$2');
 
   // Find the course group this belongs to
   const courseGroup = courseGroups.find(g => 

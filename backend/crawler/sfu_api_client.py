@@ -125,7 +125,7 @@ class SFUAPIClient:
             soup = BeautifulSoup(response.text, 'html.parser')
             text = soup.get_text()
             
-            # Extract enrollment: "Enrolment161 out of 331"
+            # Extract enrollment: "Enrolment161 out of 331" or "200 out of 200 (39 on waitlist)"
             enrollment_pattern = r'Enrolment\s*(\d+)\s*out of\s*(\d+)'
             enrollment_match = re.search(enrollment_pattern, text)
             
@@ -135,12 +135,12 @@ class SFUAPIClient:
                 capacity = enrollment_match.group(2)
                 enrolled_capacity = f"{enrolled}/{capacity}"
             
-            # Extract waitlist: "(15 on waitlist)"
+            # Extract waitlist: "(39 on waitlist)" or "(15 on waitlist)"
             waitlist = None
             waitlist_patterns = [
-                r'\((\d+)\s+on\s+waitlist\)',  # (15 on waitlist)
+                r'\((\d+)\s+on\s+waitlist\)',  # (39 on waitlist) - most common format
                 r'waitlist:\s*(\d+)',           # Waitlist: 15
-                r'(\d+)\s+on\s+waitlist',       # 15 on waitlist
+                r'(\d+)\s+on\s+waitlist',       # 15 on waitlist (without parens)
             ]
             
             for pattern in waitlist_patterns:
