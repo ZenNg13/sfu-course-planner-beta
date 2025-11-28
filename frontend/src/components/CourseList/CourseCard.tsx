@@ -107,47 +107,51 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
       {/* Expanded Content */}
       {isExpanded && (
         <div className="px-4 pb-4 space-y-3">
-          {/* 4-Column Stats Grid */}
-          <div className="grid grid-cols-4 gap-4 bg-dark-bg rounded-lg p-4">
-            <div>
-              <div className="text-xs text-gray-500 mb-1">Enrolled Count</div>
-              <div className="text-sm font-medium text-white">
+          {/* 4-Column Stats Grid - Responsive */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-dark-bg rounded-lg p-4">
+            {/* Enrollment Count */}
+            <div className="flex flex-col min-h-[100px]">
+              <div className="text-xs text-gray-500 mb-2 font-medium">Enrolled Count</div>
+              <div className="text-lg font-semibold text-white mb-1">
                 {enrollmentData.loading ? (
-                  <span className="text-gray-400">Loading...</span>
+                  <span className="text-gray-400 text-sm">Loading...</span>
                 ) : enrollmentData.error ? (
-                  <span className="text-red-400">Error</span>
+                  <span className="text-red-400 text-sm">Error</span>
                 ) : (
                   enrollmentData.enrolled
                 )}
               </div>
-              <div className="text-xs text-gray-400 mt-0.5">
-                {enrollmentData.waitlist && `(${enrollmentData.waitlist}W)`}
-              </div>
+              {enrollmentData.waitlist && (
+                <div className="text-xs text-gray-400 mb-2">
+                  ({enrollmentData.waitlist}W)
+                </div>
+              )}
               <a 
                 href={`https://coursys.sfu.ca/browse/info/${termCode}-${course.dept.toLowerCase()}-${course.number}-${sectionCode}`}
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline mt-auto break-words"
               >
                 CourSys.sfu.ca
               </a>
             </div>
             
-            <div>
-              <div className="text-xs text-gray-500 mb-1">Professor Rating</div>
+            {/* Professor Rating */}
+            <div className="flex flex-col min-h-[100px]">
+              <div className="text-xs text-gray-500 mb-2 font-medium">Professor Rating</div>
               {ratingLoading ? (
-                <div className="text-sm font-medium text-gray-400">Loading...</div>
+                <div className="text-sm font-medium text-gray-400 mb-2">Loading...</div>
               ) : profRating ? (
                 <>
-                  <div className="text-sm font-medium text-yellow-400">
+                  <div className="text-lg font-semibold text-yellow-400 mb-1">
                     {profRating.rating}/5
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">
+                  <div className="text-xs text-gray-400 mb-2">
                     ({profRating.numRatings} ratings)
                   </div>
                 </>
               ) : (
-                <div className="text-sm font-medium text-gray-400">
+                <div className="text-sm font-medium text-gray-400 mb-2">
                   {course.instructor === 'TBA' ? 'TBA' : 'Not found'}
                 </div>
               )}
@@ -157,33 +161,35 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
                   : `https://www.ratemyprofessors.com/search/professors/1482?q=${encodeURIComponent(course.instructor)}`}
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline mt-auto break-words"
               >
                 RateMyProfessors.com
               </a>
             </div>
             
-            <div>
-              <div className="text-xs text-gray-500 mb-1">Average Grade</div>
-              <div className="text-sm font-medium text-green-400">
+            {/* Average Grade */}
+            <div className="flex flex-col min-h-[100px]">
+              <div className="text-xs text-gray-500 mb-2 font-medium">Average Grade</div>
+              <div className="text-lg font-semibold text-green-400 mb-1">
                 {course.stats.avgGrade}
               </div>
-              <div className="text-xs text-gray-400 mt-0.5">
+              <div className="text-xs text-gray-400 mb-2">
                 (may be outdated)
               </div>
               <a 
                 href={`https://coursediggers.com/`}
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline mt-auto break-words"
               >
                 CourseDiggers.com
               </a>
             </div>
             
-            <div>
-              <div className="text-xs text-gray-500 mb-1">Textbook ISBN</div>
-              <div className="text-sm font-medium text-white">
+            {/* Textbook ISBN */}
+            <div className="flex flex-col min-h-[100px]">
+              <div className="text-xs text-gray-500 mb-2 font-medium">Textbook ISBN</div>
+              <div className="text-sm font-medium text-white mb-2 break-words">
                 {course.stats.textbookISBN}
               </div>
               {course.stats.textbookISBN !== 'None' && (
@@ -191,7 +197,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
                   href={`https://shop.sfu.ca/Item?item=${course.stats.textbookISBN}#item=${course.stats.textbookISBN}`}
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-block"
+                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline mt-auto break-words"
                 >
                   shop.sfu.ca
                 </a>
